@@ -15,6 +15,7 @@ library(lme4)
 library(stringr)
 library(mvtnorm)
 library(purrr)
+library(ggplot2)
 
 # Source user-defined functions
 source("../R/02-functions.R")
