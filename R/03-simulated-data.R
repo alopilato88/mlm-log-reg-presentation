@@ -38,24 +38,6 @@ sim_empty_mod_data <-
     "data"
   )
 
-# --- Create simulated multilevel team data for extended example --- #
-sim_team_output <-
-  glmer_logistic_sim(
-    n_ind = 10,
-    n_cluster = 150,
-    odds_ratio_x = c(exp(logit(.35)),
-                     2.50),
-    odds_ratio_cluster_x = c(2),
-    odds_ratio_inx = 2
-  )
-
-# Pluck data from sim_team_output -- think of examples
-sim_team_data <-
-  sim_team_output %>%
-  purrr::pluck(
-    "data"
-  )
-
 # --- Create cross-classified hiring recommendation simulated data -- #
 hiring_data <- 
   hiring_recomendation_sim(
