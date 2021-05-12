@@ -241,6 +241,8 @@ hiring_recomendation_sim <- function(
   Zinterviewer <- model.matrix(~ as.factor(interview_data$INTERVIEWER_ID)  - 1)
   Z <- cbind(Zcandidate, Zinterviewer)
   
+  rm(Zcandidate, Zinterviewer)
+  
   # Generate random effects for different models 
   candidate_ranef_1 <- rnorm(n_candidates, mean = 0, sd = 1)
   interviewier_ranef_1 <- rnorm(n_interviewers, mean = 0, sd = 1)
@@ -316,21 +318,29 @@ hiring_recomendation_sim <- function(
     )
   
   if(sparse_data) {
-    interview_keep_id <- 
+
+    interview_keep_id <- numeric()
+    interview_keep_data <- 
       interview_data %>%
       dplyr::mutate(
         ROW_ID = 1:nrow(interview_data)
-      ) %>%
-      dplyr::group_by(
-        CANDIDATE_ID
-      ) %>%
-      dplyr::summarize(
-        KEEP = list(sample(ROW_ID, 5))
-      ) %>%
-      dplyr::pull(
-        KEEP
-      ) %>%
-      unlist(.)
+      )
+    
+    for(i in 1:n_candidates) {
+      row_id <- 
+        interview_keep_data %>%
+        dplyr::filter(
+          CANDIDATE_ID == i
+        ) %>%
+        dplyr::pull(
+          ROW_ID
+        )
+      
+      interview_keep_id <- c(
+        interview_keep_id,
+        sample(row_id, size = 5)
+      )
+    }
     
     interview_data_sparse <-
       tibble::tibble(
