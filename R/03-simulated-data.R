@@ -38,7 +38,7 @@ sim_empty_mod_data <-
     "data"
   )
 
-# Create simulated multilevel team data for extended example
+# --- Create simulated multilevel team data for extended example --- #
 sim_team_output <-
   glmer_logistic_sim(
     n_ind = 10,
@@ -55,3 +55,11 @@ sim_team_data <-
   purrr::pluck(
     "data"
   )
+
+# --- Create cross-classified hiring recommendation simulated data -- #
+hiring_data <- 
+  hiring_recomendation_sim(
+    n_candidates = 1000,
+    n_interviewers = 300,
+    sparse_data = TRUE
+  ) 
