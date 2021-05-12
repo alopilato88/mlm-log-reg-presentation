@@ -24,7 +24,7 @@ sim_logistic_reg_data <-
 # --- Create random effects model --- #
 sim_empty_mod_output <- 
   glmer_logistic_sim(
-    n_ind = 10,
+    n_ind = 100,
     n_cluster = 150,
     odds_ratio_x = exp(logit(.50)),
     odds_ratio_cluster_x = NA,
