@@ -2,7 +2,7 @@
 # This script simulates data from a mixed-effects logistic regression model #
 #############################################################################
 
-# Create logistic regression example
+# --- Create logistic regression example --- #
 sim_logistic_reg_output <-
   glmer_logistic_sim(
     n_ind = 1000,
@@ -17,6 +17,23 @@ sim_logistic_reg_output <-
 
 sim_logistic_reg_data <-
   sim_logistic_reg_output %>%
+  purrr::pluck(
+    "data"
+  )
+
+# --- Create random effects model --- #
+sim_empty_mod_output <- 
+  glmer_logistic_sim(
+    n_ind = 10,
+    n_cluster = 150,
+    odds_ratio_x = exp(logit(.50)),
+    odds_ratio_cluster_x = NA,
+    odds_ratio_inx = NA,
+    ranef_covariance = matrix(1, ncol = 1)
+  )
+
+sim_empty_mod_data <- 
+  sim_empty_mod_output %>%
   purrr::pluck(
     "data"
   )
