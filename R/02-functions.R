@@ -128,7 +128,7 @@ glmer_logistic_sim <- function(
 
   # Create a data frame to return
   data <- data.frame(
-    X[, -1],
+    X,
     Y,
     CLUSTER_ID = cluster_id
   )
@@ -152,7 +152,7 @@ glmer_logistic_sim <- function(
     x_inx_names <- NA
   }
 
-  data_names <- c(x_ind_names, x_cluster_names, x_inx_names)
+  data_names <- c("INTERCEPT", x_ind_names, x_cluster_names, x_inx_names)
 
   if(sum(!is.na(data_names)) > 0) {
     data_names <- na.omit(data_names)
