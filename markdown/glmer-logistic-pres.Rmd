@@ -1,0 +1,60 @@
+---
+title: "Mixed Effects Logistic Regression"
+author: "Alex LoPilato"
+output: 
+  ioslides_presentation:
+    widescreen: true
+    mathjax: default
+    css: "style.css"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+source("../R/01-dependencies.R", local = knitr::knit_global())
+source("../R/02-functions.R", local = knitr::knit_global())
+source("../R/03-simulated-data.R", local = knitr::knit_global())
+source("../R/04-model-fitting.R", local = knitr::knit_global())
+```
+
+## <font size = "6">Overview</font>
+
+## <font size = "6">Linear Mixed Effects Regression Model Primer</font>
+
+- A flexible class of linear models that allow one to adjust for and model dependencies that occur in one's data because of how the data were generated. 
+
+- Linear Mixed Effects Regression Models (LMERs) allow us to relax the assumption that our data are independent of one another. 
+
+## <font size = "6"> Dependency by Design</font> {.smaller}
+Two common designs that can cause dependency:
+
+1. Nested Design 
+\tiny
+    ```{r, echo = FALSE}
+    Employee <- 1:4
+    Firm <- rep(1:2, each = 2)
+    xtabs(~ Employee + Firm)
+    ```
+\normalsize
+2. Crossed Design
+\tiny
+    ```{r}
+    Employee <- rep(1:3, 2)
+    Rater <- rep(1:2, each = 3)
+    xtabs(~Employee + Rater)
+    ```
+
+## Random Effects
+$$Var(Y_{ij}) = \sigma^2 + \tau^2 $$
+
+## Logistic Regression Model Primer 
+
+## Interpreting Logistic Regression Coefficients
+
+## Plotting Predicted Probabilities
+
+## Mixed Effects Logistic Regression 
+
+## Motivating Example
+
+## Cross-Classified 
+
