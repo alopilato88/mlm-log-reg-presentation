@@ -24,7 +24,7 @@ source("../R/04-model-fitting.R", local = knitr::knit_global())
 
 - Linear Mixed Effects Regression Models (LMERs) allow us to relax the assumption that our data are independent of one another. 
 
-## <font size = "6"> Dependency by Design</font> {.smaller}
+## <font size = "6">Dependency by Design</font> {.smaller}
 Two common designs that can cause dependency:
 
 1. Nested Design 
@@ -46,15 +46,33 @@ Two common designs that can cause dependency:
 ## Random Effects
 $$Var(Y_{ij}) = \sigma^2 + \tau^2 $$
 
-## Logistic Regression Model Primer 
+## <font size = "6">Logistic Regression Model Primer</font> 
 
-## Interpreting Logistic Regression Coefficients
+## <font size = "6">Interpreting Logistic Regression Coefficients</font>
 
-## Plotting Predicted Probabilities
+## <font size = "6">Plotting Predicted Probabilities</font>
 
-## Mixed Effects Logistic Regression 
+## <font size = "6">Mixed Effects Logistic Regression</font>
 
-## Motivating Example
+## <font size = "6">Mixed Effects Logistic Regression</font>
 
-## Cross-Classified 
+## <font size = "6">Motivating Example</font>
+
+## <font size = "6">Cross Classified Logistic Regression Model</font> 
+
+## <font size = "6">Model Fitting Strategy</font>
+
+- The Top-Down Strategy 
+- The Step-Up Strategy 
+
+## <font size = "6">Empty Model</font>
+
+## <font size = "6">Adding Main Effects of Predictors</font>
+
+## <font size = "6">Adding Interaction Effects</font>
+
+## <font size = "6">Assessing Overall Model Fit</font>
+
+## <font size = "6">Interpreting the Final Model</font>
+
 
