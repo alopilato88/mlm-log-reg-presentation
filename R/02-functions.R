@@ -56,8 +56,6 @@ glmer_logistic_sim <- function(
     ranef_matrix %>%
     matrix(ncol = 1)
 
-
-
   # Create design matrix
   X <- rep(1, n)
 
@@ -174,9 +172,227 @@ glmer_logistic_sim <- function(
   return(output)
 }
 
+# hiring_recomendation_sim function to create cross-classified hiring rec data 
+hiring_recomendation_sim <- function(
+  n_candidates = 100,
+  n_interviewers = 100,
+  sparse_data = FALSE
+) {
+  # Calculate total sample
+  n <- n_candidates * n_interviewers
+  
+  # Create interviewer data frame
+  interviewer_data <- 
+    tibble::tibble(
+      INTERVIEWER_ID = 1:n_interviewers,
+      INTERVIEWER_GENDER = sample(c(1, 0), 
+                                  size = n_interviewers,
+                                  prob = c(.60, .40),
+                                  replace = TRUE)
+    )
+  
+  # Create candidate data frame
+  candidate_data <- 
+    tibble::tibble(
+      CANDIDATE_ID = 1:n_candidates,
+      CANDIDATE_GENDER = sample(c(1, 0), 
+                                size = n_candidates,
+                                prob = c(.60, .40), 
+                                replace = TRUE)
+    )
+  
+  # Link interviewers and candidates 
+  interview_data <- 
+    expand.grid(interviewer_data$INTERVIEWER_ID,
+                candidate_data$CANDIDATE_ID) %>%
+    dplyr::as_tibble() %>%
+    dplyr::rename(
+      INTERVIEWER_ID = Var1,
+      CANDIDATE_ID = Var2
+    ) %>%
+    dplyr::left_join(
+      interviewer_data,
+      by = "INTERVIEWER_ID"
+    ) %>%
+    dplyr::left_join(
+      candidate_data,
+      by = "CANDIDATE_ID"
+    )
+  
+  # Set model parameters - Selection 1 - Male Bias
+  b_intercept_1 <- 2
+  b_can_gender_1 <- 0
+  b_int_gender_1 <- -.75
+  b_int_can_gender_1 <- 1.75 
+  
+  # Set model parameters - Selection 2 - Female Bias
+  b_intercept_2 <- 2
+  b_can_gender_2 <- -1
+  b_int_gender_2 <- -.75
+  b_int_can_gender_2 <- 1
+  
+  # Set model parameters - Hiring Recommendation 
+  b_intercept_3 <- -5
+  b_s1_3 <- 1.25
+  b_s2_3 <- .75
+  
+  # Create design matrices 
+  Zcandidate <- model.matrix(~ as.factor(interview_data$CANDIDATE_ID)  - 1)
+  Zinterviewer <- model.matrix(~ as.factor(interview_data$INTERVIEWER_ID)  - 1)
+  Z <- cbind(Zcandidate, Zinterviewer)
+  
+  # Generate random effects for different models 
+  candidate_ranef_1 <- rnorm(n_candidates, mean = 0, sd = 1)
+  interviewier_ranef_1 <- rnorm(n_interviewers, mean = 0, sd = 1)
+  ranef_1 <- c(candidate_ranef_1, interviewier_ranef_1)
+  
+  candidate_ranef_2 <- rnorm(n_candidates, mean = 0, sd = 1)
+  interviewier_ranef_2 <- rnorm(n_interviewers, mean = 0, sd = 1)
+  ranef_2 <- c(candidate_ranef_2, interviewier_ranef_2)
+  
+  candidate_ranef_3 <- rnorm(n_candidates, mean = 0, sd = sqrt(2))
+  interviewier_ranef_3 <- rnorm(n_interviewers, mean = 0, sd = sqrt(2))
+  ranef_3 <- c(candidate_ranef_3, interviewier_ranef_3)
+  
+  # Generate random interview level error term 
+  e1 <- rnorm(n, mean = 0, sd = 1)
+  e2 <- rnorm(n, mean = 0, sd = 1)
+  
+  # Generate outcome 
+  y_s1 <- b_intercept_1 + b_can_gender_1 * interview_data$CANDIDATE_GENDER + 
+    b_int_gender_1 * interview_data$INTERVIEWER_GENDER + 
+    b_int_can_gender_1 * interview_data$INTERVIEWER_GENDER * interview_data$CANDIDATE_GENDER + 
+    Z %*% ranef_1 + e1 
+  
+  y_s2 <- b_intercept_2 + b_can_gender_2 * interview_data$CANDIDATE_GENDER + 
+    b_int_gender_2 * interview_data$INTERVIEWER_GENDER + 
+    b_int_can_gender_2 * interview_data$INTERVIEWER_GENDER * interview_data$CANDIDATE_GENDER + 
+    Z %*% ranef_2 + e2
+  
+  # Categorize y_s1 and y_s2 into buckets of 0 - 3
+  interview_data <- 
+    interview_data %>%
+    dplyr::mutate(
+      ASSESSMENT_1 = as.numeric(y_s1), 
+      ASSESSMENT_2 = as.numeric(y_s2),
+    ) %>%
+    dplyr::mutate(
+      ASSESSMENT_1_CAT = dplyr::case_when(
+        ASSESSMENT_1 <= quantile(ASSESSMENT_1, .25) ~ 0,
+        ASSESSMENT_1 <= quantile(ASSESSMENT_1, .50) ~ 1,
+        ASSESSMENT_1 <= quantile(ASSESSMENT_1, .75) ~ 2,
+        TRUE ~ 3
+      ),
+      ASSESSMENT_2_CAT = dplyr::case_when(
+        ASSESSMENT_2 <= quantile(ASSESSMENT_2, .25) ~ 0,
+        ASSESSMENT_2 <= quantile(ASSESSMENT_2, .50) ~ 1,
+        ASSESSMENT_2 <= quantile(ASSESSMENT_2, .75) ~ 2,
+        TRUE ~ 3
+      )
+    )
+  
+  # Generate hiring recommendation
+  
+  mu_s3 <- b_intercept_3 + b_s1_3 * interview_data$ASSESSMENT_1_CAT + 
+    b_s2_3 * interview_data$ASSESSMENT_2_CAT + Z %*% ranef_3
+  
+  y_s3 <- rbinom(n, size = 1, prob = inv_logit(mu_s3))
+  
+  # Create data frame 
+  interview_data <- 
+    interview_data %>%
+    dplyr::mutate(
+      HIRE_REC = y_s3
+    ) %>%
+    dplyr::mutate(
+      INTERVIEWER_GENDER = dplyr::case_when(
+        INTERVIEWER_GENDER == 1 ~ "Male",
+        TRUE ~ "Female"
+      ),
+      CANDIDATE_GENDER = dplyr::case_when(
+        CANDIDATE_GENDER == 1 ~ "Male",
+        TRUE ~ "Female"
+      )
+    )
+  
+  if(sparse_data) {
+    interview_keep_id <- 
+      interview_data %>%
+      dplyr::mutate(
+        ROW_ID = 1:nrow(interview_data)
+      ) %>%
+      dplyr::group_by(
+        CANDIDATE_ID
+      ) %>%
+      dplyr::summarize(
+        KEEP = list(sample(ROW_ID, 5))
+      ) %>%
+      dplyr::pull(
+        KEEP
+      ) %>%
+      unlist(.)
+    
+    interview_data_sparse <-
+      tibble::tibble(
+        CANDIDATE_ID = rep(1:n_candidates, each = 5),
+        ROW_ID = as.numeric(interview_keep_id)
+      ) %>%
+      dplyr::left_join(
+        interview_data %>%
+          dplyr::mutate(
+            ROW_ID = 1:nrow(interview_data)
+          ),
+        by = c("CANDIDATE_ID", "ROW_ID")
+      )
+    
+    output <- list(
+      interview_data = interview_data,
+      interview_data_sparse = interview_data_sparse
+    )
+  } else {
+    output <- list(
+      interview_data = interview_data,
+      interview_data_sparse = NULL
+    )
+    
+    return(output)
+  }
+  
+  
+}
 
-
-
+# interaction_plot 
+interaction_plot <- function(
+  data,
+  outcome
+) {
+  
+  data <-
+    data %>%
+    dplyr::select(
+      {{outcome}},
+      INTERVIEWER_GENDER,
+      CANDIDATE_GENDER
+    ) %>%
+    dplyr::group_by(
+      INTERVIEWER_GENDER,
+      CANDIDATE_GENDER
+    ) %>%
+    dplyr::summarize(
+      MEAN_OUTCOME = mean({{outcome}})
+    )
+  
+  ggplot2::ggplot(
+    data,
+    aes(x = INTERVIEWER_GENDER,
+        y = MEAN_OUTCOME,
+        fill = CANDIDATE_GENDER)
+  ) +
+    ggplot2::geom_bar(
+      stat = "identity",
+      position = position_dodge()
+    )
+}
 
 
 
