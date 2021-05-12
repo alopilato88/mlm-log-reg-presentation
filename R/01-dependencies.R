@@ -17,4 +17,4 @@ library(mvtnorm)
 library(purrr)
 
 # Source user-defined functions
-source("../R/functions.R")
+source("../R/02-functions.R")
