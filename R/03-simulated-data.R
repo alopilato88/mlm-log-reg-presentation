@@ -2,7 +2,7 @@
 # This script simulates data from a mixed-effects logistic regression model #
 #############################################################################
 
-# --- Create LMER empty model exemple --- #
+# --- Create LMER model example --- #
 lmer_data <- lmer_sim(n1 = 100, n2 = 20)
 
 # --- Create logistic regression example --- #
