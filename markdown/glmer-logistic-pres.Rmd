@@ -18,6 +18,11 @@ source("../R/04-model-fitting.R", local = knitr::knit_global())
 
 ## <font size = "6">Overview</font>
 
+- Recap of LMERs
+- Primer on Logistic Regression
+- Introduction to GLMERs 
+- Model Fitting Example 
+
 ## <font size = "6">Linear Mixed Effects Regression Model Primer</font>
 
 - A flexible class of linear models that allow one to adjust for and model dependencies that occur in one's data because of how the data were generated. 
