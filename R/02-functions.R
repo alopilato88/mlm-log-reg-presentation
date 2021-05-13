@@ -3,6 +3,7 @@
 # the remaining scripts.                                                  #
 ###########################################################################
 
+# --- General helper functions --- #
 # logit function to turn probability value into log odds ratio
 logit <- function(x) {
 
@@ -17,6 +18,96 @@ inv_logit <- function(x) {
   p <- exp(x) / (1 + exp(x))
   return(p)
 
+}
+
+# interaction_plot 
+interaction_plot <- function(
+  data,
+  outcome
+) {
+  
+  data <-
+    data %>%
+    dplyr::select(
+      {{outcome}},
+      INTERVIEWER_GENDER,
+      CANDIDATE_GENDER
+    ) %>%
+    dplyr::group_by(
+      INTERVIEWER_GENDER,
+      CANDIDATE_GENDER
+    ) %>%
+    dplyr::summarize(
+      MEAN_OUTCOME = mean({{outcome}})
+    )
+  
+  ggplot2::ggplot(
+    data,
+    aes(x = INTERVIEWER_GENDER,
+        y = MEAN_OUTCOME,
+        fill = CANDIDATE_GENDER)
+  ) +
+    ggplot2::geom_bar(
+      stat = "identity",
+      position = position_dodge()
+    )
+}
+
+# --- Simulation functions to simulate data for presentation --- #
+
+# lmer_sim function simulates data from an LMER model 
+lmer_sim <- function(
+  n1 = 100,
+  n2 = 100,
+  ranef_var = 2,
+  icc = .50
+) {
+  # Calculate total sample size
+  n <- n1 * n2
+  
+  # Calculate l1 error from ICC and l2 var specification 
+  e_var <- (ranef_var * (1 - icc)) / icc
+  
+  # Generate cluster_id
+  cluster_id <- rep(1:n2, each = n1)
+  
+  # Create random effects design matrix
+  Z <- model.matrix(~ as.factor(cluster_id) - 1)
+  
+  # Generate predictor to have group variation 
+  Ux <- rnorm(n2, mean = 0, sd = sqrt(2))
+  ex <- rnorm(n, mean = 0, sd = sqrt(.50))
+  x1G <- Z %*% Ux
+  x1I <- ex
+  
+  # Create remaining model matrices
+  X <- cbind(1, x1G, x1I)
+  B <- matrix(c(5, 2, 0), ncol = 1)
+  U <- rnorm(n2, mean = 0, sd = sqrt(ranef_var)) %>%
+    as.matrix(ncol = 1)
+  e <- rnorm(n, mean = 0, sd = sqrt(e_var)) %>%
+    as.matrix(ncol = 1)
+  
+  # Generate outcome 
+  Y <- X %*% B + Z %*% U + e 
+  
+  # Organize simulated data into a tibble
+  data <- tibble(
+    Y = as.numeric(Y),
+    X = as.numeric(X[, 2]) + as.numeric(X[, 3]),
+    CLUSTER_ID = cluster_id
+  ) %>%
+    dplyr::group_by(
+      CLUSTER_ID
+    ) %>%
+    dplyr::mutate(
+      X_CLUSTER_MEAN = mean(X),
+      X_CLUSTER_CENT = X - X_CLUSTER_MEAN
+    )
+  
+  return(data)
+  
+  
 }
 
 # glmer_logistic_sim function simulates data from a mixed-effects logistic
@@ -371,38 +462,7 @@ hiring_recomendation_sim <- function(
   
 }
 
-# interaction_plot 
-interaction_plot <- function(
-  data,
-  outcome
-) {
-  
-  data <-
-    data %>%
-    dplyr::select(
-      {{outcome}},
-      INTERVIEWER_GENDER,
-      CANDIDATE_GENDER
-    ) %>%
-    dplyr::group_by(
-      INTERVIEWER_GENDER,
-      CANDIDATE_GENDER
-    ) %>%
-    dplyr::summarize(
-      MEAN_OUTCOME = mean({{outcome}})
-    )
-  
-  ggplot2::ggplot(
-    data,
-    aes(x = INTERVIEWER_GENDER,
-        y = MEAN_OUTCOME,
-        fill = CANDIDATE_GENDER)
-  ) +
-    ggplot2::geom_bar(
-      stat = "identity",
-      position = position_dodge()
-    )
-}
+
 
 
 
