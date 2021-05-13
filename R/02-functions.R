@@ -356,13 +356,13 @@ hiring_recomendation_sim <- function(
       )
     
     output <- list(
-      interview_data = interview_data,
-      interview_data_sparse = interview_data_sparse
+      data = interview_data,
+      data_sparse = interview_data_sparse
     )
   } else {
     output <- list(
-      interview_data = interview_data,
-      interview_data_sparse = NULL
+      data = interview_data,
+      data_sparse = NULL
     )
     
     return(output)
