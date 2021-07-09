@@ -16,6 +16,7 @@ library(stringr)
 library(mvtnorm)
 library(purrr)
 library(ggplot2)
+library(ggpubr)
 
 # Source user-defined functions
 source("../R/02-functions.R")
