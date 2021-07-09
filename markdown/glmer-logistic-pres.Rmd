@@ -21,63 +21,446 @@ source("../R/04-model-fitting.R", local = knitr::knit_global())
 - Recap of LMERs
 - Primer on Logistic Regression
 - Introduction to GLMERs 
-- Model Fitting Example 
+- Model Fitting Examples 
 
 ## <font size = "6">Linear Mixed Effects Regression Model Primer</font>
 
 - A flexible class of linear models that allow one to adjust for and model dependencies that occur in one's data because of how the data were generated. 
 
-- Linear Mixed Effects Regression Models (LMERs) allow us to relax the assumption that our data are independent of one another. 
+- Linear Mixed Effects Regression (LMER) Models allow us to relax the assumption that our data are independent of one another. 
 
 ## <font size = "6">Dependency by Design</font> {.smaller}
-Two common designs that can cause dependency:
 
-1. Nested Design 
-\tiny
     ```{r, echo = FALSE}
-    Employee <- 1:4
-    Firm <- rep(1:2, each = 2)
-    xtabs(~ Employee + Firm)
-    ```
-\normalsize
-2. Crossed Design
-\tiny
-    ```{r}
-    Employee <- rep(1:3, 2)
-    Rater <- rep(1:2, each = 3)
-    xtabs(~Employee + Rater)
+    Employee <- 1:10
+    Team <- rep(1:5, each = 2)
+    xtabs(~ Employee + Team)
     ```
 
-## Random Effects
+## <font size = "6">Random Effects</font>
+
+- LMER models estimate two "kinds" of residuals: 1) Level 1 Residual and 2) Level 2 Residual
+
 $$Var(Y_{ij}) = \sigma^2 + \tau^2 $$
+
+- The Level 2 residual is often referred to as a random effect and this effect is constant within a given level 2 unit (e.g. team in the above example)
+
+- LMER models assume local independence -- outcomes within a given level 2 unit are independent of one another.
+
+## <font size = "6">Benefits of Mixed Effects Models</font>
+
+- Correct standard errors when data is not independent
+
+- Allows you to explore and model group level variation 
+
+- Highly flexible class of models
+
+## <font size = "6">What is the effect?</font>
+
+- When we want to estimate the impact of some feature, X, on an outcome, Y, but our data is clustered, what can we do?
+
+- Ignore the clustering all together: 
+
+```{r}
+summary(lmer_lm_m1)
+```
+
+- Remove the clustering effects all together:
+```{r}
+summary(lmer_lm_m2)
+```
+
+- Model the clustering effects: 
+```{r}
+summary(lmer_m2)
+```
 
 ## <font size = "6">Logistic Regression Model Primer</font> 
 
+- Logistic Regression is part of a family of nonlinear regression models called Generalized Linear Models (GLMs)
+
+- GLMs "generalize" ordinary linear regression models to non-normal outcomes (e.g. Binomial and Count Data)
+
+- GLMs achieve this by using a link function, $g(.)$, to transform the mean of the distribution so that it can be modeled by a linear predictor: 
+
+$$Y_{i} \sim Bernoulli(p_{i})$$
+$$g(p_{i})=\beta_{0} + \beta_{1}X_{i}$$
+
+## <font size = "6">Logistic Link Function</font> 
+
+- Logistic models use the Inverse of the Logistic CDF as the link function--the logit function or log-odds: 
+
+$$\log(\frac{p_{i}}{1 - p_{i}}) = \beta_{0}+\beta_{1}X_{i}$$
+
 ## <font size = "6">Interpreting Logistic Regression Coefficients</font>
 
+- Interpreting GLM parameters requires a bit of care thanks to the link function
+
+- For logistic regression, the parameters should be interpreted as "For every unit increase in $X$, we observe a change of $\beta_{1}$ in the log-odds of the outcome. 
+- We can, however, transform the parameters to make them more interpretable: 
+
+$$Odds\ Ratio = \frac{\frac{p_{1}}{1 - p_{1}}}{\frac{p_{0}}{1 - p_{0}}} = e^{\beta_{1}} $$
+
+$$\frac{Odds_{X + 1} - Odds_{X}}{Odds_{X}}=e^{\beta_{1}}-1$$
+
+## <font size = "6">Simulated Example</font>
+
+- We want to understand how an employee's intentions to remain at an organization and their job satisfaction relates to whether or not they left the organization. 
+
+```{r}
+sim_logistic_reg_data %>%
+  dplyr::select(
+    INTENT_TO_LEAVE:LEAVE_ORG
+  ) %>%
+  head()
+```
+
+## <font size = "6">Simulated Example Results</font>
+```{r}
+summary(logistic_m1)
+```
+
+## <font size = "6">Simulated Example Results</font>
+```{r}
+summary(logistic_m1)$coef %>%
+  as.data.frame(row.names = FALSE) %>%
+  dplyr::select(
+    Est = Estimate,
+    SE = `Std. Error`,
+    Z = `z value`,
+    p = `Pr(>|z|)`
+  ) %>%
+  dplyr::mutate(
+    OR_Est = exp(Est),
+    dplyr::across(Est:OR_Est, ~round(.x, 3)),
+    OR_Percent_Chg = 100 * (OR_Est - 1),
+    Parameter = c("Int.", "Intent to Leave", "Job Sat.")
+  ) %>%
+  dplyr::select(
+    Parameter,
+    Est,
+    OR_Est,
+    OR_Percent_Chg,
+    SE:p
+  )
+```
+
 ## <font size = "6">Plotting Predicted Probabilities</font>
+```{r}
+ggplot2::ggplot(
+  data = predict_data,
+  ggplot2::aes(x = RESPONSE, y = PRED_PROB)
+) + 
+  ggplot2::facet_grid(~ OUTCOME) +
+  ggplot2::geom_point() + 
+  ggplot2::labs(
+    x = "Predictor Variable Response",
+    y = "Probability of Attrition"
+  )
+```
 
 ## <font size = "6">Mixed Effects Logistic Regression</font>
 
-## <font size = "6">Mixed Effects Logistic Regression</font>
+- Merger of LMER and Logistic Regression: 
 
-## <font size = "6">Motivating Example</font>
+$$Y_{i} \sim Bernoulli(p_{i})$$
+$$\log(\frac{p_{i}}{1 - p_{i}}) = X\beta+Z\eta$$
+$$\eta_{j} \sim MVN(0, \Sigma) $$
+
+## <font size = "6">Mixed Effects Logistic Regression - Hierarchical Example</font>
+
+- You have binary responses to a job satisfaction question from 20,000 employees from 200 different firms (100 employees per firm). You want to determine the extent to which firms vary from one another in their satisfaction responses adjusting for the tenure of the individual employees and a measure of the high performance work practices employed by the firm. 
+
+```{r}
+sim_empty_mod_data[sample(1:15000, 10), ] %>%
+  dplyr::select(
+    FIRM,
+    SCALED_TENURE,
+    HR_PRACTICES,
+    JOB_SAT_TEXT,
+    JOB_SAT_BINARY
+  )
+```
+
+## <font size = "6">Plotting Firm Satisfaction </font>
+
+```{r}
+ggplot2::ggplot(
+  data = firm_plot_data,
+  ggplot2::aes(x = FIRM_JOB_SAT)
+) + 
+  ggplot2::geom_histogram() + 
+  ggplot2::labs(
+    x = "Firm Level Job Satisfaction Prop.",
+    y = "Number of Firms"
+  )
+```
+
+## <font size = "6">Fitting an empty GLMER Model</font>
+
+```{r eval = FALSE, echo = TRUE}
+glmer(JOB_SAT_BINARY ~ 1 + (1 | FIRM),
+      family = "binomial",
+      data = sim_empty_mod_data)
+```
+
+## <font size = "6">Plotting Proportions and Random Effects </font>
+
+```{r}
+ggplot2::ggplot(
+  data = uncon_re,
+  ggplot2::aes(x = PROP)
+) + 
+  ggplot2::facet_wrap(~ COND) + 
+  ggplot2::geom_histogram() + 
+  ggplot2::labs(
+    x = "Firm Job Satisfaction Proportions",
+    y = "Number of Firms"
+  )
+```
+
+## <font size = "6">Fitting a GLMER Model with Predictors</font>
+
+```{r eval = FALSE, echo = TRUE}
+glmer(JOB_SAT_BINARY ~ SCALED_TENURE + HR_PRACTICES + (1 | FIRM),
+      family = "binomial",
+      data = sim_empty_mod_data)
+```
+
+## <font size = "6">GLMER Model Results</font>
+
+```{r}
+summary(glmer_m1)
+```
+
+## <font size = "6">Plotting the Conditional Random Effects</font>
+```{r}
+ggplot2::ggplot(
+  data = conditional_re %>%
+    dplyr::filter(
+      COND %in% c("Conditional RE - Avg. Predictor Values",
+                  "Unconditional Prop.")
+    ),
+  ggplot2::aes(x = PROP)
+) + 
+  ggplot2::facet_wrap(~ COND) + 
+  ggplot2::geom_histogram()
+```
+
+## <font size = "6">Mixed Effects Logistic Regression - Cross-Classified Example</font>
+
+- You're tasked with understanding how a job candidate's performance in a structured interview relates to whether or not the interviewer recommends that the candidate be hired for the job. You'll also want to test for any gender effects (candidate, interviewer, and their interaction).
+
+- Here's your data: 
+```{r}
+hiring_data$data_sparse %>%
+  dplyr::select(
+    CANDIDATE_ID, 
+    INTERVIEWER_ID, 
+    CANDIDATE_GENDER,
+    INTERVIEWER_GENDER,
+    ASSESSMENT_1_CAT,
+    ASSESSMENT_2_CAT,
+    HIRE_REC
+  )
+```
 
 ## <font size = "6">Cross Classified Logistic Regression Model</font> 
 
+- Our data (like much rating data) has a cross-classified structure: Candidate x Interviewer.
+
+- Each candidate is rated by five independent interviewers & interviewers rate many different candidates.
+
+- Further, our data is quite sparse -- many Candidate x Interviewer pairs do not exist in our data.
+
+- Finally, we want to estimate independent candidate and rater random effects. That is, candidates will vary in the % of hiring recommendations they receive and interviewers will vary in the % of hiring recommendations they give. 
+
+## <font size = "6">Cross Classified Logistic Regression Model</font> 
+```{r eval = FALSE, echo = TRUE}
+glmer(
+  HIRE_REC ~ ASSESSMENT_1_CAT + ASSESSMENT_2_CAT + CANDIDATE_GENDER * INTERVIEWER_GENDER +
+    (1 | CANDIDATE_ID) + (1 | INTERVIEWER_ID),
+  family = "binomial",
+  data = hiring_data$data_sparse
+)
+
+```
+
 ## <font size = "6">Model Fitting Strategy</font>
 
-- The Top-Down Strategy 
-- The Step-Up Strategy 
+* The Top-Down Strategy
+    + Start with target model an work backwards
 
-## <font size = "6">Empty Model</font>
+* The Step-Up Strategy 
+    + Start with an empty model and work towards the target model
+
+## <font size = "6">Fitting an Empty Model</font>
+
+```{r}
+summary(glmer_hire_m0)
+```
 
 ## <font size = "6">Adding Main Effects of Predictors</font>
 
+```{r}
+summary(glmer_hire_m1)
+```
+
 ## <font size = "6">Adding Interaction Effects</font>
 
-## <font size = "6">Assessing Overall Model Fit</font>
+```{r}
+summary(glmer_hire_m2)
+```
+
+## <font size = "6">Model Comparisons</font>
+
+```{r}
+anova(glmer_hire_m0, glmer_hire_m1)
+```
+
+## <font size = "6">Model Comparisons</font>
+
+```{r}
+anova(glmer_hire_m1, glmer_hire_m2)
+```
 
 ## <font size = "6">Interpreting the Final Model</font>
 
+- CAUTION: Interpreting GLMER effects is tricky! 
 
+- Because random effects enter into the equation non-linearly, interpretation is not straightforward...
+
+- We can still talk about odds ratios, but we need to recognize that the effect is dependent on the random effect as well
+
+## <font size = "6">Final Model Output</font>
+```{r}
+summary(glmer_final)
+```
+
+```{r}
+summary(glmer_final)$coef %>%
+  as.data.frame(row.names = FALSE) %>%
+  dplyr::select(
+    Estimate,
+    SE = `Std. Error`,
+    p = `Pr(>|z|)`
+  ) %>%
+  dplyr::mutate(
+    OR = round(exp(Estimate), 3),
+    OR_LOW = round(exp(Estimate - 2*SE), 3),
+    OR_HIGH = round(exp(Estimate + 2*SE), 3),
+    Estimate = round(Estimate, 3),
+    SE = round(SE, 3),
+    p = round(p, 3),
+    Effect = c("Int.", "Assessment 1", "Assessment 2")
+  ) %>%
+  dplyr::select(
+    Effect,
+    Est = Estimate,
+    OR, 
+    OR_LOW,
+    OR_HIGH,
+    SE,
+    p
+  )
+```
+
+## <font size = "6">Interpreting the Impact of Assessment 1</font>
+
+```{r}
+plot_1 <- 
+  ggplot2::ggplot(
+    data = plot_1_data, 
+    ggplot2::aes(
+      x = ASSESSMENT_1,
+      y = PROP
+    )
+  ) + 
+  ggplot2::geom_bar(
+    stat = "identity"
+  ) + 
+  ggplot2::ylim(0, 1) + 
+  ggplot2::labs(
+    x = "Assessment 1 Score",
+    y = "Probability of Hire Rec."
+  )
+
+plot_2 <- 
+  ggplot2::ggplot(
+    data = plot_2_data, 
+    ggplot2::aes(
+      x = ASSESSMENT_1,
+      y = PROP
+    )
+  ) + 
+  ggplot2::geom_bar(
+    stat = "identity"
+  ) + 
+  ggplot2::ylim(0, 1) + 
+  ggplot2::labs(
+    x = "Assessment 1 Score",
+    y = "Probability of Hire Rec."
+  )
+
+plot_3 <- 
+  ggplot2::ggplot(
+    data = plot_3_data, 
+    ggplot2::aes(
+      x = ASSESSMENT_1,
+      y = PROP
+    )
+  ) + 
+  ggplot2::geom_bar(
+    stat = "identity"
+  ) + 
+  ggplot2::ylim(0, 1) + 
+  ggplot2::labs(
+    x = "Assessment 1 Score",
+    y = "Probability of Hire Rec."
+  )
+
+plot_4 <- 
+  ggplot2::ggplot(
+    data = plot_4_data,
+    ggplot2::aes(
+      x = RE
+    )
+  ) + 
+  ggplot2::geom_histogram() + 
+  ggplot2::labs(
+    x = "Interviewer Random Effects",
+    y = "Number of Interviewers"
+  )
+
+ggpubr::ggarrange(
+  plot_1,
+  plot_2,
+  plot_3,
+  plot_4
+)
+```
+
+## <font size = "6">Probability of Hiring Rec by Interviewer Severity</font>
+
+```{r}
+ggplot2::ggplot(
+  data = hire_re_plot_data,
+  ggplot2::aes(x = PROP)
+) + 
+  ggplot2::facet_wrap(~ COND) + 
+  ggplot2::geom_histogram(
+    binwidth = .085
+  ) + 
+  ggplot2::labs(
+    x = "Probability of Hiring Rec.",
+    y = "Number of Candidate-Interviewer Pairs"
+  )
+```
+
+## <font size = "6">Assessing Overall Model Fit</font>
+
+- Still a relatively new area of research so there is not a lot to go on...
+
+- Confusion Matrix 
+
+- Simulation Methods
